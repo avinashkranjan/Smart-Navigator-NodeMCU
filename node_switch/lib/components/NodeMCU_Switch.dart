@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:web_socket_channel/io.dart';
+import 'package:device_apps/device_apps.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:android_intent_plus/android_intent.dart';
+import 'package:external_app_launcher/external_app_launcher.dart';
 
 class NodeMCU_Switch extends StatefulWidget {
   @override
@@ -37,9 +41,9 @@ class _NodeMCU_Switch extends State<NodeMCU_Switch> {
           setState(() {
             if (message == "connected") {
               connected = true; //message is "connected" from NodeMCU
-            } else if (message == "poweron:success") {
+            } else if (message == "poweron") {
               ledstatus = true;
-            } else if (message == "poweroff:success") {
+            } else if (message == "poweroff") {
               ledstatus = false;
             }
           });
@@ -55,7 +59,8 @@ class _NodeMCU_Switch extends State<NodeMCU_Switch> {
           print(error.toString());
         },
       );
-    } catch (_) {
+    } catch (err) {
+      print(err.toString());
       print("error on connecting to websocket.");
     }
   }
@@ -86,17 +91,25 @@ class _NodeMCU_Switch extends State<NodeMCU_Switch> {
             children: [
               Container(
                   child: connected
-                      ? Text("WEBSOCKET: CONNECTED")
-                      : Text("DISCONNECTED")),
+                      ? const Text("WEBSOCKET: CONNECTED")
+                      : const Text("WEBSOCKET: DISCONNECTED")),
               Container(
-                  child: ledstatus ? Text("LED IS: ON") : Text("LED IS: OFF")),
+                  child: ledstatus
+                      ? const Text("LED IS: ON")
+                      : const Text("LED IS: OFF")),
               Container(
                   margin: EdgeInsets.only(top: 30),
                   child: FlatButton(
                       //button to start scanning
                       color: Colors.redAccent,
                       colorBrightness: Brightness.dark,
-                      onPressed: () {
+                      onPressed: () async {
+                        // Returns a list of only those apps that have launch intent
+                        List<Application> apps =
+                            await DeviceApps.getInstalledApplications(
+                                onlyAppsWithLaunchIntent: true,
+                                includeSystemApps: true);
+                        print(apps);
                         //on button press
                         if (ledstatus) {
                           //if ledstatus is true, then turn off the led
@@ -109,11 +122,21 @@ class _NodeMCU_Switch extends State<NodeMCU_Switch> {
                           sendcmd("poweron");
                           ledstatus = true;
                         }
-                        setState(() {});
+                        setState(() {
+                          // await LaunchApp.openApp(
+                          //   androidPackageName: 'com.team4.helping_hands',
+                          //   // iosUrlScheme: 'pulsesecure://',
+                          //   // appStoreLink:
+                          //   //     'itms-apps://itunes.apple.com/us/app/pulse-secure/id945832041',
+                          //   // openStore: false
+                          // );
+                          // _openHelperApp({"helping_hands": "https://www.google.com"});
+                          // DeviceApps.openApp('com.team4.helping_hands');
+                        });
                       },
                       child: ledstatus
-                          ? Text("TURN LED OFF")
-                          : Text("TURN LED ON")))
+                          ? const Text("TURN LED OFF")
+                          : const Text("TURN LED ON")))
             ],
           )),
     );
